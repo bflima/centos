@@ -73,3 +73,7 @@ _VIM()
     echo "Configuracao realizada, para repetir a instalacao remover esse arquivo $FILE"
   fi
 }
+
+_CONFIGURAR
+_DEPENDENCIA()
+_VIM()
