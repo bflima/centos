@@ -30,7 +30,7 @@ _DEPENDENCIA()
 
       # Instalar repositorio EPEL e ferramentas de desenvolvimento
       yum install epel-release.noarch yum-utils "@Development Tools" -y
-
+      yum config-manager --set-enabled PowerTools
       # instalação de pacotes adicionais repositorioepel necessita estar instalado
       yum install wget dialog chrony htop net-tools figlet bash-completion -y
 
