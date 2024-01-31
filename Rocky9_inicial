@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+# Função para atualizar os pacotes do sistema tambem desabilita o firewall e SEL                                                                                                             INUX
+_CONFIGURAR()
+{
+  clear
+  FILE="/tmp/inicial.txt"
+  if [ ! -e "$FILE" ] ; then
+
+    #Atualizar sistema
+    yum update  -y || { echo "Erro ao realizar update"  ; exit 1 ; }
+    yum upgrade -y || { echo "Erro ao realizar upgrade" ; exit 1 ; }
+
+    # Desabilitar o firewalld
+    systemctl stop firewalld && systemctl disable firewalld
+
+    # Desabilitar SELINUX
+    if [ "$(getenforce)" != 'Disabled' ]
+        then
+            setenforce 0
+            sed -i 's/^SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config
+    fi
+
+    localectl set-keymap br-abnt2 || { echo "Erro ao atualizar o layout" ; exit                                                                                                              1 ; }
+    localectl set-locale C.UTF-8  || { echo "Erro ao atualizar o idioma" ; exit                                                                                                              1 ; }
+    timedatectl set-timezone America/Sao_Paulo || { echo "Erro ao atualizar o ti                                                                                                             mezone" ; exit 1 ; }
+
+    echo "Configuracao realizada, função executada foi _CONFIGURAR" | tee > $FIL                                                                                                             E
+  else
+    echo "Configuracao realizada, para repetir a instalacao remover esse arquivo                                                                                                              $FILE"
+  fi
+}
+################################################################################
+#Função para instalar pacotes necessarios para a instalação a ser realizada SAMB                                                                                                             A
+_DEPENDENCIA()
+{
+  clear
+  FILE="/tmp/dep.txt"
+    if [ ! -e "$FILE" ] ; then
+
+      # Instalar repositorio EPEL e ferramentas de desenvolvimento
+      yum install -y epel-release.noarch yum-utils "@Development Tools" || { ech                                                                                                             o "Erro ao instalar EPEL"  ; exit 1 ; }
+
+      # instalação de pacotes adicionais repositorio Epel necessita estar instal                                                                                                             ado
+      # ### yum config-manager --set-enabled PowerTools || { echo "Erro ao insta                                                                                                             lar Power Tools"  ; exit 1 ; }
+
+      PACOTES='vim wget dialog chrony htop net-tools bash-completion'
+      yum install -y $PACOTES || { echo "Erro ao instalar $PACOTES"  ; exit 1 ;                                                                                                              }
+
+      # Habilitando o bash completion
+      source /etc/profile.d/bash_completion.sh || echo "Erro ao habilitar bash c                                                                                                             ompletion"
+
+      # Instala chrony e atualiza a hora
+      which chronyd && {
+      cp --backup /etc/chrony.conf{,.bak}                           ;
+      sed -i 's/^pool.*/server\ a.ntp.br\ iburst/' /etc/chrony.conf ;
+      sed -i '4s/^/server\ b.ntp.br\ iburst\n/' /etc/chrony.conf    ;
+      sed -i 's/^#allow.*/allow\ 0.0.0.0\/0/' /etc/chrony.conf      ;
+      systemctl enable chronyd && systemctl restart chronyd         ; } || echo                                                                                                              "chronyd nao esta instalado"
+
+
+        echo "Configuracao realizada, função executada foi _DEPENDENCIA" | tee >                                                                                                              $FILE
+        echo "Data e hora atualizados"
+    else
+        echo "Configuracao realizada, para repetir a instalacao remover esse arq                                                                                                             uivo $FILE"
+    fi
+}
+################################################################################
+#Função de instalação e configuração do editor vim
+_VIM()
+{
+  which vim || yum install vim -y
+  FILE="/tmp/vim.txt"
+  LOCAL_VIM=$(whereis vimrc |cut -d " " -f2)
+  echo "$FILE"
+
+  if [ ! -e "$FILE" ] ; then
+      echo "Criando arquivo de configuracao"
+      sed -i 's/set\ nocompatible/set\ bg\=\dark\nset\ nocompatible/'     "$LOCA                                                                                                             L_VIM"
+      sed -i 's/set\ nocompatible/set\ tabstop\=4\nset\ nocompatible/'    "$LOCA                                                                                                             L_VIM"
+      sed -i 's/set\ nocompatible/set\ shiftwidth\=4\nset\ nocompatible/' "$LOCA                                                                                                             L_VIM"
+      sed -i 's/set\ nocompatible/set\ expandtab\nset\ nocompatible/'     "$LOCA                                                                                                             L_VIM"
+      sed -i 's/set\ nocompatible/syntax\ on\nset\ nocompatible/'         "$LOCA                                                                                                             L_VIM"
+      sed -i 's/set\ nocompatible/set\ number\nset\ nocompatible/'        "$LOCA                                                                                                             L_VIM"
+      echo "Configuracao realizada, função executada foi _VIM" | tee > $FILE
+  else
+    echo "Configuracao realizada, para repetir a instalacao remover esse arquivo                                                                                                              $FILE"
+  fi
+}
+
+# Principal
+
+[ "$(id -u)" -eq 0 ] || { echo "Favor executar o script com root" ; exit 1 ; }
+_CONFIGURAR
+_DEPENDENCIA
+_VIM
